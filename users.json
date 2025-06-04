@@ -13,10 +13,5 @@
         "username": "phanthinh",
         "password": "thinh123",
         "role": "user"
-    },
-    {
-        "username": "phantuan",
-        "password": "tuan123",
-        "role": "admin"
     }
 ]

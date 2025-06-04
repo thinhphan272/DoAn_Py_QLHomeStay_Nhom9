@@ -56,17 +56,21 @@ class HomestayBookingSystem:
             with open(self.users_file, 'w') as f:
                 json.dump(default_users, f)
 
-    def resource_path(relative_path):
-        """Hàm này giúp xác định đúng đường dẫn file trong cả môi trường dev và khi đóng gói."""
-        try:
-            base_path = sys._MEIPASS  # Thư mục tạm khi chạy file .exe
-        except AttributeError:
-            base_path = os.path.abspath(".")  # Thư mục hiện tại khi chạy bằng Python
-        return os.path.join(base_path, relative_path)
+    def center_window(self, width, height):
+        """Đặt vị trí cửa sổ ở giữa màn hình"""
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+
+        # Tính toán vị trí x, y
+        x = (screen_width // 2) - (width // 2)
+        y = (screen_height // 2) - (height // 2)
+
+        self.root.geometry(f'{width}x{height}+{x}+{y}')
     def create_login_ui(self):
         """Tạo giao diện đăng nhập chuyên nghiệp với logo"""
         self.clear_ui()
         self.root.geometry("420x450")
+
         self.root.configure(bg="#f4f6f9")
 
 
@@ -160,8 +164,9 @@ class HomestayBookingSystem:
 
     def create_main_ui(self):
         """Tạo giao diện chính sau khi đăng nhập"""
-        self.clear_ui()  # Clear any existing widgets from root
+        self.clear_ui()
         self.root.geometry("1200x700")
+        self.center_window(1200, 700)
         self.root.configure(bg="#f4f6f9")  # Background color
 
         # Menu bar
@@ -180,12 +185,7 @@ class HomestayBookingSystem:
 
         self.root.config(menu=menubar)
 
-        '''# Welcome label
-        Label(self.root,
-              text=f"QUẢN LÝ KHÁCH ĐẶT PHÒNG HOMESTAY - Xin chào {self.current_user['username']}",
-              font=("Arial", 18, "bold"),
-              bg="#f4f6f9",
-              fg="#333333").pack(pady=15)'''
+
 
         # Tạo frame riêng cho tiêu đề để dễ canh chỉnh
         title_frame = Frame(self.root, bg="#f4f6f9")
