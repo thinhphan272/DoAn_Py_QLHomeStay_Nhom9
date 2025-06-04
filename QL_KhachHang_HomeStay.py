@@ -264,7 +264,7 @@ class HomestayBookingSystem:
 
         # Treeview hiển thị danh sách người dùng
         columns = ("username", "role")
-        self.users_tree = ttk.Treeview(self.data_frame, columns=columns, show="headings")
+        self.users_tree = ttk.Treeview(self.data_frame, columns=columns, show="headings", selectmode='extended')
 
         self.users_tree.heading("username", text="Tên đăng nhập")
         self.users_tree.heading("role", text="Vai trò")
@@ -371,31 +371,69 @@ class HomestayBookingSystem:
         self.load_users_data()
 
     def delete_user(self):
-        """Xóa người dùng được chọn"""
-        selected_item = self.users_tree.selection()
-        if not selected_item:
-            messagebox.showerror("Lỗi", "Vui lòng chọn người dùng cần xóa")
+        """Xóa nhiều người dùng được chọn cùng lúc"""
+        selected_items = self.users_tree.selection()
+        if not selected_items:
+            messagebox.showerror("Lỗi", "Vui lòng chọn ít nhất một người dùng cần xóa")
             return
 
-        username = self.users_tree.item(selected_item)['values'][0]
+        # Lấy danh sách thông tin user được chọn
+        selected_users = [{
+            'username': self.users_tree.item(item)['values'][0],
+            'role': self.users_tree.item(item)['values'][1]
+        } for item in selected_items]
 
-        # Không cho xóa admin mặc định
-        if username == "admin":
-            messagebox.showerror("Lỗi", "Không thể xóa tài khoản admin mặc định")
+        # Kiểm tra các ràng buộc
+        error_messages = []
+        usernames_to_delete = []
+
+        for user in selected_users:
+            if user['username'] == "admin":
+                error_messages.append(f"- Không thể xóa tài khoản admin mặc định")
+            elif user['username'] == self.current_user['username']:
+                error_messages.append(f"- Bạn không thể tự xóa tài khoản của chính mình")
+            else:
+                usernames_to_delete.append(user['username'])
+
+        if error_messages:
+            messagebox.showerror("Lỗi", "Không thể xóa các tài khoản sau:\n" + "\n".join(error_messages))
+            if not usernames_to_delete:  # Nếu không có user nào hợp lệ để xóa
+                return
+
+        # Tạo thông báo xác nhận chi tiết
+        confirm_message = [
+            f"Bạn có chắc chắn muốn xóa {len(usernames_to_delete)} người dùng sau?",
+            "\nDanh sách:",
+            *[f"• {username}" for username in usernames_to_delete],
+            "\nHành động này không thể hoàn tác!"
+        ]
+
+        if not messagebox.askyesno("Xác nhận xóa", "\n".join(confirm_message)):
             return
 
-        if messagebox.askyesno("Xác nhận", f"Bạn có chắc chắn muốn xóa người dùng {username}?"):
+        # Thực hiện xóa
+        try:
             with open(self.users_file, 'r') as f:
                 users = json.load(f)
 
-            # Lọc ra người dùng cần xóa
-            users = [user for user in users if user['username'] != username]
+            # Lọc ra những user không nằm trong danh sách xóa
+            updated_users = [user for user in users if user['username'] not in usernames_to_delete]
 
             with open(self.users_file, 'w') as f:
-                json.dump(users, f, indent=4)
+                json.dump(updated_users, f, indent=4)
 
-            messagebox.showinfo("Thành công", "Xóa người dùng thành công")
+            # Thông báo kết quả
+            success_message = [
+                f"Đã xóa thành công {len(usernames_to_delete)} người dùng:",
+                *[f"• {username}" for username in usernames_to_delete]
+            ]
+            messagebox.showinfo("Thành công", "\n".join(success_message))
+
+            # Làm mới danh sách
             self.load_users_data()
+
+        except Exception as e:
+            messagebox.showerror("Lỗi", f"Có lỗi xảy ra khi xóa người dùng: {str(e)}")
 
     def add_customer_ui(self):
         """Giao diện thêm khách hàng mới"""
