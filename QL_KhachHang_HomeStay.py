@@ -8,6 +8,7 @@ from api_gialap import APIService
 from PIL import Image, ImageTk
 from tkinter import Label, Frame
 
+import sys
 
 class HomestayBookingSystem:
 
@@ -15,6 +16,11 @@ class HomestayBookingSystem:
         self.username_entry = None
         self.root = root
         self.root.title("Hệ thống Quản lý Khách đặt Homestay")
+
+        try:
+            self.root.iconbitmap('hs1.ico')  # Thay 'qlhss.ico' bằng tên file icon của bạn
+        except:
+            pass  # Bỏ qua nếu không tìm thấy file icon
 
         # File dữ liệu
         self.customers_file = "customers.json"
@@ -50,11 +56,19 @@ class HomestayBookingSystem:
             with open(self.users_file, 'w') as f:
                 json.dump(default_users, f)
 
+    def resource_path(relative_path):
+        """Hàm này giúp xác định đúng đường dẫn file trong cả môi trường dev và khi đóng gói."""
+        try:
+            base_path = sys._MEIPASS  # Thư mục tạm khi chạy file .exe
+        except AttributeError:
+            base_path = os.path.abspath(".")  # Thư mục hiện tại khi chạy bằng Python
+        return os.path.join(base_path, relative_path)
     def create_login_ui(self):
         """Tạo giao diện đăng nhập chuyên nghiệp với logo"""
         self.clear_ui()
         self.root.geometry("420x450")
         self.root.configure(bg="#f4f6f9")
+
 
         # === Load Logo ===
         try:
@@ -814,55 +828,49 @@ class HomestayBookingSystem:
         Label(self.data_frame, text=f"KẾT QUẢ TÌM KIẾM ({len(results)} kết quả)", font=("Arial", 14, "bold")).pack(
             pady=10)
 
-        # Tạo Treeview để hiển thị kết quả
+        # Sử dụng self.customers_tree thay vì results_tree
         columns = ("name", "phone", "cccd", "dob", "gender", "checkin", "checkout", "room_type")
-        results_tree = ttk.Treeview(self.data_frame, columns=columns, show="headings")
+        self.customers_tree = ttk.Treeview(self.data_frame, columns=columns, show="headings")
 
         # Đặt tiêu đề cho các cột
-        results_tree.heading("name", text="Tên khách hàng")
-        results_tree.heading("phone", text="Số điện thoại")
-        results_tree.heading("cccd", text="CCCD")
-        results_tree.heading("dob", text="Ngày sinh")
-        results_tree.heading("gender", text="Giới tính")
-        results_tree.heading("checkin", text="Ngày check-in")
-        results_tree.heading("checkout", text="Ngày check-out")
-        results_tree.heading("room_type", text="Loại phòng")
+        self.customers_tree.heading("name", text="Tên khách hàng")
+        self.customers_tree.heading("phone", text="Số điện thoại")
+        self.customers_tree.heading("cccd", text="CCCD")
+        self.customers_tree.heading("dob", text="Ngày sinh")
+        self.customers_tree.heading("gender", text="Giới tính")
+        self.customers_tree.heading("checkin", text="Ngày check-in")
+        self.customers_tree.heading("checkout", text="Ngày check-out")
+        self.customers_tree.heading("room_type", text="Loại phòng")
 
-        results_tree.pack(fill=BOTH, expand=True, padx=10, pady=10)
+        self.customers_tree.pack(fill=BOTH, expand=True, padx=10, pady=10)
 
         # Thêm thanh cuộn
-        scrollbar = ttk.Scrollbar(results_tree, orient="vertical", command=results_tree.yview)
+        scrollbar = ttk.Scrollbar(self.customers_tree, orient="vertical", command=self.customers_tree.yview)
         scrollbar.pack(side=RIGHT, fill=Y)
-        results_tree.configure(yscrollcommand=scrollbar.set)
+        self.customers_tree.configure(yscrollcommand=scrollbar.set)
 
-        # Thêm dữ liệu kết quả
+        # Thêm dữ liệu kết quả (kèm tags chứa ID)
         for customer in results:
-            results_tree.insert("", END,
-                                values=(customer['name'],
-                                        customer['phone'],
-                                        customer['cccd'],
-                                        customer['dob'],
-                                        customer['gender'],
-                                        customer['checkin'],
-                                        customer['checkout'],
-                                        customer['room_type']))
-
-
+            self.customers_tree.insert("", END,
+                                       values=(customer['name'],
+                                               customer['phone'],
+                                               customer['cccd'],
+                                               customer['dob'],
+                                               customer['gender'],
+                                               customer['checkin'],
+                                               customer['checkout'],
+                                               customer['room_type']),
+                                       tags=(customer['id'],))  # Quan trọng: Thêm tags
 
         # Nút chức năng
         button_frame = Frame(self.data_frame, bg="#f4f6f9")
         button_frame.pack(pady=10)
         if self.current_user['role'] == 'admin':
             ttk.Button(button_frame, text="Làm mới", command=self.view_customers).grid(row=0, column=0, padx=5)
-        if self.current_user['role'] == 'admin':
             ttk.Button(button_frame, text="Sửa", command=self.edit_customer).grid(row=0, column=1, padx=5)
-        if self.current_user['role'] == 'admin':
             ttk.Button(button_frame, text="Xóa", command=self.delete_customer).grid(row=0, column=2, padx=5)
-        if self.current_user['role'] == 'admin':
-            ttk.Button(button_frame, text="Xóa tất cả", command=self.delete_all_customers).grid(row=0, column=3,
-                                                                                                padx=5)
+            ttk.Button(button_frame, text="Xóa tất cả", command=self.delete_all_customers).grid(row=0, column=3, padx=5)
 
-        self.load_customers_data()
         self.search_window.destroy()
     def import_from_api(self):
         """Nhập dữ liệu từ API"""
@@ -879,10 +887,12 @@ class HomestayBookingSystem:
         for widget in self.root.winfo_children():
             widget.destroy()
 
+
     def clear_data_frame(self):
         """Xóa nội dung trong khung dữ liệu"""
         for widget in self.data_frame.winfo_children():
             widget.destroy()
+
 
 
 # Khởi chạy ứng dụng
